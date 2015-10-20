@@ -15,6 +15,8 @@ import java.util.Map;
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.mifosplatform.portfolio.client.domain.ClientRecurringCharge;
+import org.mifosplatform.portfolio.client.domain.ClientRecurringChargeRepository;
 import org.mifosplatform.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.mifosplatform.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
@@ -66,6 +68,8 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
     private final ClientTransactionRepository clientTransactionRepository;
     private final PaymentDetailWritePlatformService paymentDetailWritePlatformService;
     private final JournalEntryWritePlatformService journalEntryWritePlatformService;
+    private final ClientRecurringChargeRepository clientRecurringChargeRepository;
+	
 
     @Autowired
     public ClientChargeWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -74,7 +78,7 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
             final ConfigurationDomainService configurationDomainService, final ClientChargeRepositoryWrapper clientChargeRepository,
             final WorkingDaysRepositoryWrapper workingDaysRepository, final ClientTransactionRepository clientTransactionRepository,
             final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
-            final JournalEntryWritePlatformService journalEntryWritePlatformService) {
+            final JournalEntryWritePlatformService journalEntryWritePlatformService,final ClientRecurringChargeRepository clientRecurringChargeRepository) {
         this.context = context;
         this.chargeRepository = chargeRepository;
         this.clientChargeDataValidator = clientChargeDataValidator;
@@ -86,6 +90,7 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
         this.clientTransactionRepository = clientTransactionRepository;
         this.paymentDetailWritePlatformService = paymentDetailWritePlatformService;
         this.journalEntryWritePlatformService = journalEntryWritePlatformService;
+        this.clientRecurringChargeRepository=clientRecurringChargeRepository;
     }
 
     @Override
@@ -103,13 +108,36 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
                 final String errorMessage = "Charge with identifier " + charge.getId() + " cannot be applied to a Client";
                 throw new ChargeCannotBeAppliedToException("client", errorMessage, charge.getId());
             }
+            if (charge.isMonthlyFee() || charge.isAnnualFee()||charge.isWeeklyFee()) {
+                final ClientRecurringCharge clientRecurringCharge = ClientRecurringCharge.createNew(client, charge, command);
+                this.clientRecurringChargeRepository.save(clientRecurringCharge);
+                
+                final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat());
+                validateActivityDateFallOnAWorkingDay(clientRecurringCharge.getDueLocalDate(),
+                        clientRecurringCharge.getClient().officeId(), ClientApiConstants.dueAsOfDateParamName,
+                        "charge.due.date.is.on.holiday", "charge.due.date.is.a.non.workingday", fmt);
+                
+                /*System.out.println("calendarId:"+calendarId);
+                if(calendarId != null && calendarId != 0)
+                  saveCalendarInstance(calendarId, clientRecurringCharge.getId());*/
+                
+                return new CommandProcessingResultBuilder() //
+	            		                        .withEntityId(clientRecurringCharge.getId()) //
+			                        .withOfficeId(clientRecurringCharge.getClient().getOffice().getId()) //
+			                        .withClientId(clientRecurringCharge.getClient().getId()) //
+			                        .build();
+			            }
+			            final ClientCharge clientCharge = ClientCharge.createNew(client, charge, command);
 
-            final ClientCharge clientCharge = ClientCharge.createNew(client, charge, command);
+           // final ClientCharge clientCharge = ClientCharge.createNew(client, charge, command);
 
-            final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat());
-            validateDueDateOnWorkingDay(clientCharge, fmt);
+          //  final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat());
+            //validateDueDateOnWorkingDay(clientCharge, fmt);
 
             this.clientChargeRepository.save(clientCharge);
+            final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat());
+            validateActivityDateFallOnAWorkingDay(clientCharge.getDueLocalDate(), clientCharge.getOfficeId(),
+                    ClientApiConstants.dueAsOfDateParamName, "charge.due.date.is.on.holiday", "charge.due.date.is.a.non.workingday", fmt);
 
             return new CommandProcessingResultBuilder() //
                     .withEntityId(clientCharge.getId()) //

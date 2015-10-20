@@ -80,6 +80,14 @@ public class ClientCharge extends AbstractPersistable<Long> {
     @Temporal(TemporalType.DATE)
     @Column(name = "inactivated_on_date")
     private Date inactivationDate;
+    
+    @Column(name = "is_synch_meeting", nullable = false)
+    private boolean synchMeeting = true;
+
+@Transient
+public boolean isSynchMeeting() {
+		return synchMeeting;
+	}
 
     @Transient
     private OrganisationCurrency currency;

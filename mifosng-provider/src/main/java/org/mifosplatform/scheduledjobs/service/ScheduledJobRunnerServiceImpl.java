@@ -24,6 +24,10 @@ import org.mifosplatform.infrastructure.jobs.exception.JobExecutionException;
 import org.mifosplatform.infrastructure.jobs.service.JobName;
 import org.mifosplatform.portfolio.savings.DepositAccountType;
 import org.mifosplatform.portfolio.savings.DepositAccountUtils;
+import org.mifosplatform.portfolio.calendar.data.CalendarData;
+import org.mifosplatform.portfolio.calendar.domain.CalendarEntityType;
+import org.mifosplatform.portfolio.calendar.service.CalendarReadPlatformService;
+import org.mifosplatform.portfolio.client.domain.ClientRecurringCharge;
 import org.mifosplatform.portfolio.savings.data.DepositAccountData;
 import org.mifosplatform.portfolio.savings.data.SavingsAccountAnnualFeeData;
 import org.mifosplatform.portfolio.savings.service.DepositAccountReadPlatformService;
@@ -49,18 +53,20 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     private final SavingsAccountChargeReadPlatformService savingsAccountChargeReadPlatformService;
     private final DepositAccountReadPlatformService depositAccountReadPlatformService;
     private final DepositAccountWritePlatformService depositAccountWritePlatformService;
+    private final CalendarReadPlatformService readPlatformService;
 
     @Autowired
     public ScheduledJobRunnerServiceImpl(final RoutingDataSourceServiceFactory dataSourceServiceFactory,
             final SavingsAccountWritePlatformService savingsAccountWritePlatformService,
             final SavingsAccountChargeReadPlatformService savingsAccountChargeReadPlatformService,
             final DepositAccountReadPlatformService depositAccountReadPlatformService,
-            final DepositAccountWritePlatformService depositAccountWritePlatformService) {
+            final DepositAccountWritePlatformService depositAccountWritePlatformService,final CalendarReadPlatformService readPlatformService) {
         this.dataSourceServiceFactory = dataSourceServiceFactory;
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
         this.savingsAccountChargeReadPlatformService = savingsAccountChargeReadPlatformService;
         this.depositAccountReadPlatformService = depositAccountReadPlatformService;
         this.depositAccountWritePlatformService = depositAccountWritePlatformService;
+        this.readPlatformService=readPlatformService;
     }
 
     @Transactional
@@ -348,7 +354,118 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         if (sb.length() > 0) {
             jdbcTemplate.update(insertSql + sb.toString());
         }
+        
 
     }
+    
+    @Transactional
+    @Override
+    @CronTarget(jobName = JobName.APPLY_RECURRING_CHARGE_ON_CLIENT)
+    public void applyClientRecurringCharge() {
+    	
+
+        final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
+  final StringBuilder selectSqlBuilder = new StringBuilder(900);
+  selectSqlBuilder.append("SELECT id,is_synch_meeting,client_id,charge_id,charge_due_date,charge_time_enum from m_client_recurring_charge");
+  List<Map<String,Object>> list = jdbcTemplate.queryForList(selectSqlBuilder.toString());
+ 
+ for (Map m : list){
+	 Object[] ob=null;
+	 String str =  m.get("is_synch_meeting").toString();
+	   if(str.equals("true")){
+		   final StringBuilder startDateSqlBuilder = new StringBuilder(900);
+		LocalDate currentDate = new LocalDate();
+		Map obmap = null;
+		Long entityId = null;
+		   Long chargeId=(Long)m.get("charge_id");
+		   Long clientId = (Long)m.get("client_id");
+		   Long recurringId = (Long)m.get("id");
+		   Date chargeDueDate = (Date)m.get("charge_due_date");
+		   startDateSqlBuilder.append(" select  mgc.group_id,mci.calendar_id,mg.parent_id");
+		   startDateSqlBuilder.append(" from m_group mg" );
+		   startDateSqlBuilder.append(" left join m_group_client mgc on mgc.group_id = mg.id");
+		   startDateSqlBuilder.append(" left join m_calendar_instance mci on mci.entity_id=mg.parent_id");
+		   startDateSqlBuilder.append(" where mci.entity_type_enum=4 and mgc.client_id="+clientId);
+			  try{
+		    obmap = jdbcTemplate.queryForMap(startDateSqlBuilder.toString()); // queryForObject(dateSqlBuilder.toString(),Object[].class);
+		     entityId =(Long)obmap.get("parent_id");
+			  }catch(Exception e){
+				  final StringBuilder centreSqlBuilder = new StringBuilder(900);
+				  centreSqlBuilder.append("select mgc.group_id,mci.calendar_id from m_group_client mgc left join m_calendar_instance mci on mci.entity_id=mgc.group_id");
+				  centreSqlBuilder.append(" where mci.entity_type_enum=2 and mgc.client_id="+clientId);
+				  obmap = jdbcTemplate.queryForMap(centreSqlBuilder.toString()); 
+				 entityId =(Long)obmap.get("group_id");
+			  }
+		    
+		    Long calendarId = (Long)obmap.get("calendar_id");
+		    CalendarData calendarData = this.readPlatformService.retrieveCalendar(calendarId, entityId,4);
+		    calendarData.getRecurrence();
+		    final boolean withHistory = true;
+	        final LocalDate tillDate = null;
+		    final Collection<LocalDate> recurringDates = this.readPlatformService.generateRecurringDates(calendarData, withHistory, tillDate);
+	        LocalDate  duedate = null;
+		    StringBuilder dateSqlBuilder = new StringBuilder(900);
+		    dateSqlBuilder.append("SELECT max(charge_due_date) from m_client_charge where charge_id="+chargeId+" and client_id="+clientId);
+		   
+		    duedate= jdbcTemplate.queryForObject(dateSqlBuilder.toString(), LocalDate.class);
+		    if(duedate!=null){
+		    for(LocalDate recurringDate:recurringDates){
+				   int count = 0 ;
+				   if(duedate.equals(recurringDate)){
+					   count++;
+				   }
+				   if(count==1){
+					   while(currentDate.isAfter(duedate)){
+					   applyCharge(recurringDate,recurringId);
+					   if(currentDate.isBefore(recurringDate))
+						   break;  
+					   }
+				   }
+		    	}
+		    }else{
+		  
+			   for(LocalDate recurringDate:recurringDates){
+				   int count = 0 ;
+				   LocalDate chargeDate = new LocalDate(chargeDueDate);
+				   //chargeDate is entered by the client and it should be one of the meeting date
+				   if(chargeDate.equals(recurringDate)){
+					   count++;
+				   }
+				   if(count==1){
+					  
+					   while(currentDate.isAfter(chargeDate)){
+					   applyCharge(recurringDate,recurringId);
+					   if(currentDate.isBefore(recurringDate))
+						   break;  
+					   }
+				   }
+		    	}
+		    }
+		    
+	   }
+ }
+}  
+    public void applyCharge(LocalDate applyDate,Long recurringId) {
+
+        final JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource());
+        
+
+        final StringBuilder insertSqlBuilder = new StringBuilder(900);
+        insertSqlBuilder
+                .append("INSERT INTO m_client_charge(client_id,charge_id,is_penalty,charge_time_enum,charge_due_date,charge_calculation_enum,amount,amount_outstanding_derived,is_paid_derived,waived,is_active,inactivated_on_date,client_recurring_charge_id) ")
+                .append("SELECT crc.client_id,crc.charge_id,crc.is_penalty,crc.charge_time_enum,crc.charge_due_date,crc.charge_calculation_enum ,")
+                .append("crc.amount,crc.amount,0,0,crc.is_active,crc.inactivated_on_date,crc.id ")
+                .append("from m_client_recurring_charge crc  where crc.id="+recurringId);
+        jdbcTemplate.update(insertSqlBuilder.toString());
+        final StringBuilder updateSqlBuilder = new StringBuilder(900);
+        updateSqlBuilder.append("update m_client_charge set charge_due_date="+applyDate.toDate()+"where client_recurring_charge_id="+recurringId);
+        jdbcTemplate.update(updateSqlBuilder.toString());
+        
+        
+       
+    }
+
+    
+    
 
 }

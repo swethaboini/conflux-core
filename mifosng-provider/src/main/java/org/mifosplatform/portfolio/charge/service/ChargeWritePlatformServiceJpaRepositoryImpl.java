@@ -22,6 +22,8 @@ import org.mifosplatform.infrastructure.entityaccess.domain.MifosEntityType;
 import org.mifosplatform.infrastructure.entityaccess.service.MifosEntityAccessUtil;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.charge.api.ChargesApiConstants;
+import org.mifosplatform.portfolio.charge.domain.ChargeCalculationType;
+import org.mifosplatform.portfolio.charge.domain.ChargeTimeType;
 import org.mifosplatform.portfolio.charge.domain.Charge;
 import org.mifosplatform.portfolio.charge.domain.ChargeRepository;
 import org.mifosplatform.portfolio.charge.exception.ChargeCannotBeDeletedException;
@@ -111,6 +113,8 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
             if (chargeForUpdate == null) { throw new ChargeNotFoundException(chargeId); }
 
             final Map<String, Object> changes = chargeForUpdate.update(command);
+            this.fromApiJsonDeserializer.validateChargeTimeNCalculationType(chargeForUpdate.getChargeTimeType(),
+					chargeForUpdate.getChargeCalculation());
 
             // MIFOSX-900: Check if the Charge has been active before and now is
             // deactivated:
@@ -131,6 +135,16 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
                         "error.msg.charge.frequency.cannot.be.updated.it.is.used.in.loan",
                         "This charge frequency cannot be updated, it is used in loan"); }
             }
+            
+            // MIFOSX-Modification in the charge updating chargeCalculationType.
+            if (!isValidChargeCalculationTypeChange(command, changes, chargeForUpdate)) { throw new ChargeCannotBeUpdatedException(
+                    "error.msg.charge.chargeCalculation.cannot.be.updated.allowed.values are flat or percentageofdisbursement",
+                    "This charge chargeCalculation cannot be updated with other than flat or percentageofdisbursement for chargeTimeType trancheDisbursement"); }
+
+            if (!isValidChargeTimeTypeChange(command, changes, chargeForUpdate)) { throw new ChargeCannotBeUpdatedException(
+                    "error.msg.charge.chargeTimeType.cannot.be.updated",
+                    "This charge chargeTimeType cannot be updated with other than trancheDisbursement for chargeCalculationType flat or percentageofdisbursement"); }
+
 
             // Has account Id been changed ?
             if (changes.containsKey(ChargesApiConstants.glAccountIdParamName)) {
@@ -209,6 +223,30 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
         final String isSavingsUsingCharge = this.jdbcTemplate.queryForObject(sql, String.class, new Object[] { chargeId });
         return new Boolean(isSavingsUsingCharge);
     }
+
+    
+    private boolean isValidChargeTimeTypeChange(JsonCommand command, Map<String, Object> changes, Charge chargeForUpdate) {
+        if (changes.containsKey("chargeTimeType")
+                && (ChargeCalculationType.PERCENT_OF_AMOUNT.getValue().equals(chargeForUpdate.getChargeCalculation())
+                        || ChargeCalculationType.PERCENT_OF_AMOUNT_AND_INTEREST.getValue().equals(chargeForUpdate.getChargeCalculation()) || ChargeCalculationType.PERCENT_OF_INTEREST
+                        .getValue().equals(chargeForUpdate.getChargeCalculation()))) {
+            final Integer newValue = command.integerValueOfParameterNamed("chargeTimeType");
+            if (newValue == null || ChargeTimeType.TRANCHE_DISBURSEMENT.getValue().equals(newValue)) {}
+            return false;
+        }
+        return true;
+    }
+    
+    private boolean isValidChargeCalculationTypeChange(JsonCommand command, Map<String, Object> changes, Charge chargeForUpdate) {
+        if (changes.containsKey("chargeCalculationType")
+                && ( ChargeTimeType.TRANCHE_DISBURSEMENT.getValue().equals(chargeForUpdate.getChargeTimeType()))){
+                        
+            final Integer newValue = command.integerValueOfParameterNamed("chargeCalculationType");
+            if (newValue == null || !(ChargeCalculationType.PERCENT_OF_DISBURSEMENT_AMOUNT.getValue().equals(newValue)||
+            		ChargeCalculationType.FLAT.getValue().equals(newValue))) {}
+            return false;
+        }
+        return true;    }
 
     private boolean isAnyLoanProductsAssociateWithThisCharge(final Long chargeId) {
 

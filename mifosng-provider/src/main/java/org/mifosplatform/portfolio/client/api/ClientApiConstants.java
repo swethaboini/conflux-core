@@ -86,6 +86,7 @@ public class ClientApiConstants {
     public static final String clientTypeParamName = "clientType";
     public static final String clientClassificationIdParamName = "clientClassificationId";
     public static final String clientClassificationParamName = "clientClassification";
+    public static final String chargesynchmeetingParamName = "synchMeeting";
     // request parameters for payment details
     public static final String paymentTypeIdParamName = "paymentTypeId";
     public static final String transactionAccountNumberParamName = "accountNumber";
@@ -187,7 +188,7 @@ public class ClientApiConstants {
             amountOrPercentageParamName, amountParamName, amountPaidParamName, chargeOptionsParamName, transactionsParamName));
 
     public static final Set<String> CLIENT_CHARGES_ADD_REQUEST_DATA_PARAMETERS = new HashSet<>(
-            Arrays.asList(chargeIdParamName, amountParamName, dueAsOfDateParamName, dateFormatParamName, localeParamName));
+            Arrays.asList(chargeIdParamName, amountParamName, dueAsOfDateParamName, dateFormatParamName, localeParamName,chargesynchmeetingParamName));
 
     public static final Set<String> CLIENT_CHARGES_PAY_CHARGE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(amountParamName,
             transactionDateParamName, dateFormatParamName, localeParamName, paymentTypeIdParamName, transactionAccountNumberParamName,
