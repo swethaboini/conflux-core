@@ -5,20 +5,20 @@
  */
 package org.mifosplatform.portfolio.client.domain;
 
+
 import java.util.Collection;
 
-import org.joda.time.LocalDate;
-import org.mifosplatform.portfolio.client.data.ClientChargeData;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ClientChargeRepository extends	JpaRepository<ClientCharge, Long>,	JpaSpecificationExecutor<ClientCharge> {
+public interface ClientRecurringChargeRepository extends
+		JpaRepository<ClientRecurringCharge, Long>,
+		JpaSpecificationExecutor<ClientRecurringCharge> {
 
-	@Query("from ClientCharge cc where cc.clientRecurringCharge.id = :recurringId")
-	Collection<ClientCharge> findClientChargeByRecurringId(
-			@Param("recurringId") Long recurringId);
-	
+	@Query("from ClientRecurringCharge")
+	Collection<ClientRecurringCharge> findClientRecurringCharges();
+
 
 }
