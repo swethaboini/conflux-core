@@ -11,6 +11,8 @@ import java.util.List;
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.codes.data.CodeValueData;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
+import org.mifosplatform.portfolio.client.data.ClientChargeData;
+import org.mifosplatform.portfolio.client.domain.ClientCharge;
 import org.mifosplatform.portfolio.loanproduct.data.LoanProductData;
 import org.mifosplatform.portfolio.paymenttype.data.PaymentTypeData;
 import org.mifosplatform.portfolio.savings.data.SavingsProductData;
@@ -20,48 +22,60 @@ import org.mifosplatform.portfolio.savings.data.SavingsProductData;
  */
 public class JLGCollectionSheetData {
 
-    private final LocalDate dueDate;
-    private final Collection<LoanProductData> loanProducts;
-    @SuppressWarnings("unused")
-    private final Collection<SavingsProductData> savingsProducts;
-    private final Collection<JLGGroupData> groups;
-    private final List<EnumOptionData> attendanceTypeOptions;
-    private final Collection<PaymentTypeData> paymentTypeOptions;
+	private final LocalDate dueDate;
+	private final Collection<LoanProductData> loanProducts;
+	@SuppressWarnings("unused")
+	private final Collection<SavingsProductData> savingsProducts;
+	private final Collection<JLGGroupData> groups;
+	private final List<EnumOptionData> attendanceTypeOptions;
+	private final Collection<ClientChargeData> clientCharges;
+	private final Collection<PaymentTypeData> paymentTypeOptions;
 
-    public static JLGCollectionSheetData instance(final LocalDate date, final Collection<LoanProductData> loanProducts,
-            final Collection<JLGGroupData> groups, final List<EnumOptionData> attendanceTypeOptions,
-            final Collection<PaymentTypeData> paymentTypeOptions) {
-        return new JLGCollectionSheetData(date, loanProducts, null, groups, attendanceTypeOptions, paymentTypeOptions);
-    }
+	public static JLGCollectionSheetData instance(final LocalDate date,
+			final Collection<LoanProductData> loanProducts,
+			final Collection<JLGGroupData> groups,
+			final List<EnumOptionData> attendanceTypeOptions,
+			final Collection<ClientChargeData> clientCharges,
+			final Collection<PaymentTypeData> paymentTypeOptions) {
+		return new JLGCollectionSheetData(date, loanProducts, null, groups,
+				attendanceTypeOptions,clientCharges, paymentTypeOptions);
+	}
 
-    public static JLGCollectionSheetData withSavingsProducts(final JLGCollectionSheetData data,
-            final Collection<SavingsProductData> savingsProducts) {
+	public static JLGCollectionSheetData withSavingsProducts(
+			final JLGCollectionSheetData data,
+			final Collection<SavingsProductData> savingsProducts) {
 
-        return new JLGCollectionSheetData(data.dueDate, data.loanProducts, savingsProducts, data.groups, data.attendanceTypeOptions,
-                data.paymentTypeOptions);
-    }
+		return new JLGCollectionSheetData(data.dueDate, data.loanProducts,
+				savingsProducts, data.groups, data.attendanceTypeOptions,data.clientCharges,
+				data.paymentTypeOptions);
+	}
 
-    private JLGCollectionSheetData(LocalDate dueDate, Collection<LoanProductData> loanProducts,
-            Collection<SavingsProductData> savingsProducts, Collection<JLGGroupData> groups, List<EnumOptionData> attendanceTypeOptions,
-            final Collection<PaymentTypeData> paymentTypeOptions) {
-        this.dueDate = dueDate;
-        this.loanProducts = loanProducts;
-        this.savingsProducts = savingsProducts;
-        this.groups = groups;
-        this.attendanceTypeOptions = attendanceTypeOptions;
-        this.paymentTypeOptions = paymentTypeOptions;
-    }
+	private JLGCollectionSheetData(LocalDate dueDate,
+			Collection<LoanProductData> loanProducts,
+			Collection<SavingsProductData> savingsProducts,
+			Collection<JLGGroupData> groups,
+			List<EnumOptionData> attendanceTypeOptions,
+			final Collection<ClientChargeData> clientCharges,
+			final Collection<PaymentTypeData> paymentTypeOptions) {
+		this.dueDate = dueDate;
+		this.loanProducts = loanProducts;
+		this.savingsProducts = savingsProducts;
+		this.groups = groups;
+		this.attendanceTypeOptions = attendanceTypeOptions;
+		this.paymentTypeOptions = paymentTypeOptions;
+		this.clientCharges = clientCharges;
+	}
 
-    public LocalDate getDate() {
-        return this.dueDate;
-    }
+	public LocalDate getDate() {
+		return this.dueDate;
+	}
 
-    public Collection<JLGGroupData> getGroups() {
-        return this.groups;
-    }
+	public Collection<JLGGroupData> getGroups() {
+		return this.groups;
+	}
 
-    public Collection<LoanProductData> getLoanProducts() {
-        return this.loanProducts;
-    }
+	public Collection<LoanProductData> getLoanProducts() {
+		return this.loanProducts;
+	}
 
 }

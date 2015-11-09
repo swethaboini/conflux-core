@@ -79,11 +79,12 @@ public class ClientChargeReadPlatformServiceImpl implements ClientChargeReadPlat
             final Boolean isWaived = rs.getBoolean("waived");
             final Boolean isActive = rs.getBoolean("isActive");
             final LocalDate inactivationDate = JdbcSupport.getLocalDate(rs, "inactivationDate");
+            final Long clientRecurringChargeId = rs.getLong("clentRecurringChargeId");
 
             final Collection<ChargeData> chargeOptions = null;
 
             return ClientChargeData.instance(id, clientId, chargeId, name, chargeTimeType, dueDate, chargeCalculationType, currency, amount,
-                    amountPaid, amountWaived, amountWrittenOff, amountOutstanding, penalty, isPaid, isWaived, isActive, inactivationDate,
+                    amountPaid, amountWaived, amountWrittenOff, amountOutstanding, penalty, isPaid, isWaived, isActive, inactivationDate,clientRecurringChargeId,
                     chargeOptions);
 
         }
@@ -94,7 +95,7 @@ public class ClientChargeReadPlatformServiceImpl implements ClientChargeReadPlat
                     + "cc.amount_writtenoff_derived as amountWrittenOff, cc.amount_outstanding_derived as amountOutstanding, "
                     + "cc.charge_time_enum as chargeTime, cc.is_penalty as penalty, cc.charge_due_date as dueAsOfDate, "
                     + "cc.charge_calculation_enum as chargeCalculation, cc.is_paid_derived as isPaid, cc.waived as waived, "
-                    + "cc.is_active as isActive, cc.inactivated_on_date as inactivationDate, "
+                    + "cc.is_active as isActive, cc.inactivated_on_date as inactivationDate, cc.client_recurring_charge_id as clentRecurringChargeId, "
                     + "c.currency_code as currencyCode, oc.name as currencyName, "
                     + "oc.decimal_places as currencyDecimalPlaces, oc.currency_multiplesof as inMultiplesOf, oc.display_symbol as currencyDisplaySymbol, "
                     + "oc.internationalized_name_code as currencyNameCode from m_charge c "

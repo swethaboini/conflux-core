@@ -51,6 +51,8 @@ public class ClientChargeData {
     private final Boolean isWaived;
 
     private final LocalDate inactivationDate;
+    
+    private final Long clientRecurringChargeId;
 
     private final Collection<ChargeData> chargeOptions;
 
@@ -59,10 +61,10 @@ public class ClientChargeData {
     public static ClientChargeData instance(Long id, Long clientId, Long chargeId, String name, EnumOptionData chargeTimeType,
             LocalDate dueDate, EnumOptionData chargeCalculationType, CurrencyData currency, BigDecimal amount, BigDecimal amountPaid,
             BigDecimal amountWaived, BigDecimal amountWrittenOff, BigDecimal amountOutstanding, boolean penalty, Boolean isPaid,
-            Boolean isWaived, Boolean isActive, LocalDate inactivationDate, Collection<ChargeData> chargeOptions) {
+            Boolean isWaived, Boolean isActive, LocalDate inactivationDate,Long clientRecurringChargeId, Collection<ChargeData> chargeOptions) {
         Collection<ClientTransactionData> clientTransactionDatas = null;
         return new ClientChargeData(id, clientId, chargeId, name, chargeTimeType, dueDate, chargeCalculationType, currency, amount,
-                amountPaid, amountWaived, amountWrittenOff, amountOutstanding, penalty, isPaid, isWaived, isActive, inactivationDate,
+                amountPaid, amountWaived, amountWrittenOff, amountOutstanding, penalty, isPaid, isWaived, isActive, inactivationDate,clientRecurringChargeId,
                 chargeOptions, clientTransactionDatas);
     }
 
@@ -72,7 +74,7 @@ public class ClientChargeData {
                 clientChargeData.chargeTimeType, clientChargeData.dueDate, clientChargeData.chargeCalculationType,
                 clientChargeData.currency, clientChargeData.amount, clientChargeData.amountPaid, clientChargeData.amountWaived,
                 clientChargeData.amountWrittenOff, clientChargeData.amountOutstanding, clientChargeData.penalty, clientChargeData.isPaid,
-                clientChargeData.isWaived, clientChargeData.isActive, clientChargeData.inactivationDate, clientChargeData.chargeOptions,
+                clientChargeData.isWaived, clientChargeData.isActive, clientChargeData.inactivationDate,clientChargeData.clientRecurringChargeId, clientChargeData.chargeOptions,
                 clientTransactionDatas);
     }
 
@@ -95,17 +97,18 @@ public class ClientChargeData {
         final Boolean isActive = null;
         final Boolean isWaived = null;
         final LocalDate inactivationDate = null;
+        final Long clientRecurringChargeId = null;
         final Collection<ClientTransactionData> clientTransactionDatas = null;
 
         return new ClientChargeData(id, clientId, chargeId, name, chargeTimeType, dueDate, chargeCalculationType, currency, amount,
-                amountPaid, amountWaived, amountWrittenOff, amountOutstanding, penalty, isPaid, isWaived, isActive, inactivationDate,
+                amountPaid, amountWaived, amountWrittenOff, amountOutstanding, penalty, isPaid, isWaived, isActive, inactivationDate,clientRecurringChargeId,
                 chargeOptions, clientTransactionDatas);
     }
 
     private ClientChargeData(Long id, Long clientId, Long chargeId, String name, EnumOptionData chargeTimeType, LocalDate dueDate,
             EnumOptionData chargeCalculationType, CurrencyData currency, BigDecimal amount, BigDecimal amountPaid, BigDecimal amountWaived,
             BigDecimal amountWrittenOff, BigDecimal amountOutstanding, boolean penalty, Boolean isPaid, Boolean isWaived, Boolean isActive,
-            LocalDate inactivationDate, Collection<ChargeData> chargeOptions, Collection<ClientTransactionData> clientTransactionDatas) {
+            LocalDate inactivationDate,Long clientRecurringChargeId, Collection<ChargeData> chargeOptions, Collection<ClientTransactionData> clientTransactionDatas) {
         super();
         this.id = id;
         this.clientId = clientId;
@@ -125,6 +128,7 @@ public class ClientChargeData {
         this.isWaived = isWaived;
         this.isActive = isActive;
         this.inactivationDate = inactivationDate;
+        this.clientRecurringChargeId = clientRecurringChargeId;
 
         // template related fields
         this.chargeOptions = chargeOptions;

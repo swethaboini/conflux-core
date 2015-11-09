@@ -11,11 +11,14 @@ import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstan
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.attendanceTypeParamName;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.bulkDisbursementTransactionsParamName;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.bulkRepaymentTransactionsParamName;
+import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.chargeTransactions;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.bulkSavingsDueTransactionsParamName;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.calendarIdParamName;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.clientIdParamName;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.clientsAttendanceParamName;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.loanIdParamName;
+import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.groupIdParamName;
+import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.chargeIdParamName;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.noteParamName;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.savingsIdParamName;
 import static org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants.transactionAmountParamName;
@@ -36,6 +39,7 @@ import org.mifosplatform.infrastructure.core.data.DataValidatorBuilder;
 import org.mifosplatform.infrastructure.core.exception.InvalidJsonException;
 import org.mifosplatform.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.mifosplatform.infrastructure.core.serialization.FromJsonHelper;
+import org.mifosplatform.portfolio.collectionsheet.CollectionSheetConstants;
 import org.mifosplatform.portfolio.paymentdetail.PaymentDetailConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -84,6 +88,8 @@ public class CollectionSheetTransactionDataValidator {
         validateDisbursementTransactions(element, baseDataValidator);
 
         validateRepaymentTransactions(element, baseDataValidator);
+        
+        validateChargeTransactions(element, baseDataValidator);
 
         validateSavingsDueTransactions(element, baseDataValidator);
         final Locale locale = this.fromApiJsonHelper.extractLocaleParameter(element.getAsJsonObject());
@@ -185,6 +191,36 @@ public class CollectionSheetTransactionDataValidator {
                     validatePaymentDetails(baseDataValidator, loanTransactionElement, locale);
                 }
             }
+        }
+    }
+    
+    private void validateChargeTransactions(final JsonElement element, final DataValidatorBuilder baseDataValidator){
+    	final JsonObject topLevelJsonElement = element.getAsJsonObject();
+        final Locale locale = this.fromApiJsonHelper.extractLocaleParameter(topLevelJsonElement);
+        if(element.isJsonObject()){
+        	if (topLevelJsonElement.has(chargeTransactions)
+                    && topLevelJsonElement.get(chargeTransactions).isJsonArray()){
+        		final JsonArray array = topLevelJsonElement.get(chargeTransactions).getAsJsonArray();
+        		for (int i = 0; i < array.size(); i++) {
+        			final JsonObject chargeTransactionElement = array.get(i).getAsJsonObject();
+        			final Long groupId = this.fromApiJsonHelper.extractLongNamed(groupIdParamName, chargeTransactionElement);
+        			final Long clientId = this.fromApiJsonHelper.extractLongNamed(clientIdParamName, chargeTransactionElement);
+        			final Long chargeId = this.fromApiJsonHelper.extractLongNamed(chargeIdParamName, chargeTransactionElement);
+        			final BigDecimal chargeAmount = this.fromApiJsonHelper.extractBigDecimalNamed(transactionAmountParamName, chargeTransactionElement, locale);
+        			
+        			baseDataValidator.reset().parameter("chargetransaction" + "[" + i + "].group.id").value(groupId).notNull()
+                    .integerGreaterThanZero();
+        			baseDataValidator.reset().parameter("chargetransaction" + "[" + i + "].client.id").value(clientId).notNull()
+                    .integerGreaterThanZero();
+        			baseDataValidator.reset().parameter("chargetransaction" + "[" + i + "].charge.id").value(chargeId).notNull()
+                    .integerGreaterThanZero();
+        			baseDataValidator.reset().parameter("chargetransaction" + "[" + i + "].charge.amount").value(chargeAmount)
+                    .notNull().zeroOrPositiveAmount();
+        			        			
+        		}
+        		
+        	}
+        	
         }
     }
 

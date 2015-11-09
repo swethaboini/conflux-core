@@ -24,16 +24,17 @@ public enum JobName {
     TRANSFER_INTEREST_TO_SAVINGS("Transfer Interest To Savings"),
     ADD_PERIODIC_ACCRUAL_ENTRIES("Add Periodic Accrual Transactions"),
     RECALCULATE_INTEREST_FOR_LOAN("Recalculate Interest For Loans"),
-    GENERATE_RD_SCEHDULE("Generate Mandatory Savings Schedule");
+    GENERATE_RD_SCEHDULE("Generate Mandatory Savings Schedule"),
+    APPLY_RECURRING_CHARGE_ON_CLIENT("Apply Recurring Charge On Client");
 
-    private final String name;
+	private final String name;
 
-    private JobName(final String name) {
-        this.name = name;
-    }
+	private JobName(final String name) {
+		this.name = name;
+	}
 
-    @Override
-    public String toString() {
-        return this.name;
-    }
+	@Override
+	public String toString() {
+		return this.name;
+	}
 }
